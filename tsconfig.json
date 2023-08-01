@@ -16,7 +16,8 @@
     "strict": true,
     "skipLibCheck": true,
     "types": [
-      "jest"
+      "jest",
+      "node"
     ]
   },
   "exclude": [

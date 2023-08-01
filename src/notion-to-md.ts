@@ -172,6 +172,8 @@ export class NotionToMarkdown {
     }
     const blocks = await getBlockChildren(this.notionClient, id, totalPage);
 
+    console.info('blocks===',JSON.stringify(blocks))
+
     const parsedData = await this.blocksToMarkdown(blocks);
 
     return parsedData;
