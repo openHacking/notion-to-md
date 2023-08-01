@@ -62,6 +62,7 @@ export type ConfigurationOptions = {
   separateChildPage?: boolean;
   convertImagesToBase64?: boolean;
   parseChildPages?: boolean;
+  blocks:ListBlockChildrenResponseResults;
 };
 export interface NotionToMarkdownOptions {
   notionClient: Client;

@@ -30,6 +30,7 @@ export class NotionToMarkdown {
       separateChildPage: false,
       convertImagesToBase64: false,
       parseChildPages: true,
+      blocks:[]
     };
     this.config = { ...defaultConfig, ...options.config };
     this.customTransformers = {};
@@ -170,10 +171,16 @@ export class NotionToMarkdown {
         "notion client is not provided, for more details check out https://github.com/souvikinator/notion-to-md"
       );
     }
-    const blocks = await getBlockChildren(this.notionClient, id, totalPage);
 
-    console.info('blocks===',JSON.stringify(blocks))
+    let blocks:ListBlockChildrenResponseResults = [];
+    if(this.config.blocks.length > 0){
+      blocks = this.config.blocks;
 
+      // console.info('blocks==11111=====',JSON.stringify(blocks))
+    }else{
+     blocks = await getBlockChildren(this.notionClient, id, totalPage);
+    }
+  
     const parsedData = await this.blocksToMarkdown(blocks);
 
     return parsedData;
