@@ -350,15 +350,12 @@ const pageId = '51eb3724-1554-4cad-8f42-a2103a7feafa'
 const responseData = convertBlocksResponseData(originData, pageId);
 
 // passing notion client to the option
-const n2m = new NotionToMarkdown({ notionClient:'local', config:{
+const n2m = new NotionToMarkdown({ notionClient, config:{
   blocks:responseData
 } });
 
 (async () => {
-
-
-
   const mdblocks = await n2m.pageToMarkdown("51eb372415544cad8f42a2103a7feafa");
   const mdString = n2m.toMarkdownString(mdblocks);
-  console.log('trans====',mdString.parent);
+  // console.log('trans====',mdString.parent);
 })();

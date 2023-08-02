@@ -173,13 +173,13 @@ export class NotionToMarkdown {
     }
 
     let blocks:ListBlockChildrenResponseResults = [];
-    if(this.config.blocks.length > 0){
+    if((this.notionClient as unknown as string)=== 'local' && this.config.blocks.length > 0){
       blocks = this.config.blocks;
-
-      // console.info('blocks==11111=====',JSON.stringify(blocks))
     }else{
      blocks = await getBlockChildren(this.notionClient, id, totalPage);
     }
+
+    console.info('blocks====',JSON.stringify(blocks))
   
     const parsedData = await this.blocksToMarkdown(blocks);
 
