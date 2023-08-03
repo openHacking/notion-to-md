@@ -21,12 +21,10 @@ const blockTypeMap:any = {
   | "video"
   | "file"
   | "pdf"
-  | "table"
   | "bookmark"
   | "embed"
   | "equation"
   | "divider"
-  | "to_do"
   | "synced_block"
   | "column_list"
   | "column"
@@ -37,7 +35,6 @@ const blockTypeMap:any = {
   | "template"
   | "child_page"
   | "child_database"
-  | "code"
   | "callout"
   | "breadcrumb"
   | "table_of_contents"
@@ -46,19 +43,24 @@ const blockTypeMap:any = {
   | "unsupported"
  *
  * @param data
- * @param pageId
+ * @param id
  * @returns
  */
-export function convertBlocksResponseData(data:any, pageId:string) {
-    const blockIdList = data[pageId].value.value.content;
+export function convertBlocksResponseData(data:any, id:string) {
+    const parentData = data[id].value.value ? data[id].value.value : data[id].value;
+    const blockIdList = parentData.content;
+    const parentType = parentData.type === 'page' ? 'page_id' : 'block_id'
     const blocks: any[] = []
     blockIdList.forEach((id:string) => {
         const blockItem = data[id]
-        blocks.push(blockItem)
+        if(blockItem){
+            blocks.push(blockItem)
+        }
     })
 
     const transBlocks = blocks.map((item) => {
-        const blockData = item.value.value;
+        const blockData = item.value.value ? item.value.value : item.value;
+        const has_children = blockData.content ? true : false;
         const blockType = blockTypeMap[blockData.type] || blockData.type;
 
         let baseBlockData = {
@@ -75,16 +77,16 @@ export function convertBlocksResponseData(data:any, pageId:string) {
                 object: "user",
                 id: blockData.last_edited_by_id,
             },
-            has_children: false,
+            has_children,
             archived: false,
 
             parent: {
-                type: "page_id",
-                page_id: blockData.parent_id,
+                type: parentType,
+                [parentType]: blockData.parent_id,
             },
         }
 
-        const newBlockData = createBlockData(blockData,blockType);
+        const newBlockData = createBlockData(blockData,blockType,parentData);
 
         return Object.assign(baseBlockData,newBlockData);
     });
@@ -93,7 +95,7 @@ export function convertBlocksResponseData(data:any, pageId:string) {
 }
 
 
-function createBlockData(blockData:any,blockType:string) {
+function createBlockData(blockData:any,blockType:string,parentData:any) {
     switch (blockType) {
         case "heading_1":
         case "heading_2":
@@ -103,6 +105,7 @@ function createBlockData(blockData:any,blockType:string) {
 
         case "paragraph":
         case "quote":
+        case "toggle":
         case "bulleted_list_item":
             return paragraphBlock(blockData,blockType)
             break;
@@ -113,9 +116,18 @@ function createBlockData(blockData:any,blockType:string) {
         case "image":
             return imageBlock(blockData,blockType)
             break;
-        // case "toggle":
-        //     return toggleBlock(blockData,blockType)
-        //     break;
+        case "table":
+            return tableBlock(blockData,blockType)
+            break;
+        case "table_row":
+            return tableRowBlock(blockData,blockType,parentData)
+            break;
+        case "to_do":
+            return todoBlock(blockData,blockType)
+            break;
+        case "code":
+            return codeBlock(blockData,blockType)
+            break;
 
         default:
             return defaultBlock(blockType)
@@ -250,16 +262,103 @@ function imageBlock(blockData:any,blockType:string) {
         },
     }
 }
-function toggleBlock(blockData:any,blockType:string) {
-    const url = blockData.properties.source[0][0]
+function tableBlock(blockData:any,blockType:string) {
+    const format = blockData.format;
+    const table_block_column_order = format.table_block_column_order;
     return {
-        has_children: true,
         [blockType]: {
+            "table_width": table_block_column_order.length,
+            "has_column_header": false,
+            "has_row_header": false
+        },
+    }
+}
+
+/**
+ * 
+ * "table_block_column_order": [
+                    "cu^j",
+                    "kUBI"
+                ]
+ * "properties": {
+                "cu^j": [
+                    [
+                        "Header1"
+                    ]
+                ],
+                "kUBI": [
+                    [
+                        "Header2"
+                    ]
+                ]
+            },
+ * @param blockData 
+ * @param blockType 
+ * @returns 
+ */
+function tableRowBlock(blockData:any,blockType:string,parentData:any) {
+    const format = parentData.format;
+    const table_block_column_order = format.table_block_column_order;
+    const properties = blockData.properties;
+
+    const cells:any[] = table_block_column_order.map((columnOrder:string)=>{
+        const columnTextList = properties[columnOrder];
+        const rich_text = convertTextList(columnTextList);
+        return rich_text;
+    })
+
+    return {
+        [blockType]: {
+            cells
+        },
+    }
+}
+
+function todoBlock(blockData:any,blockType:string) {
+    const properties = blockData.properties;
+    const title = properties &&properties.title;
+    const checked = properties && properties.checked && properties.checked[0][0] === 'Yes' ? true : false;
+    const rich_text = convertTextList(title);
+    return {
+        [blockType]: {
+            rich_text,
+            checked,
+            color: "default",
+        },
+    }
+}
+
+/**
+ * "properties": {
+                "title": [
+                    [
+                        "This is a code block"
+                    ]
+                ],
+                "language": [
+                    [
+                        "Shell"
+                    ]
+                ]
+            },
+            "format": {
+                "code_wrap": true
+            },
+ * @param blockData 
+ * @param blockType 
+ * @returns 
+ */
+function codeBlock(blockData:any,blockType:string) {
+    const properties = blockData.properties;
+    const format = blockData.format;
+    const title = properties && properties.title;
+    const language = properties && properties.language && properties.language[0][0];
+    const rich_text = convertTextList(title);
+    return {
+        [blockType]: {
+            rich_text,
             caption: [],
-            type: "external",
-            external: {
-                url
-            }
+            language
         },
     }
 }
@@ -289,4 +388,16 @@ function defaultBlock(blockType:string) {
             color: "default",
         },
     }
+}
+
+export function convertToUUID(str:string) {
+    const parts = [
+        str.substr(0, 8),
+        str.substr(8, 4),
+        str.substr(12, 4),
+        str.substr(16, 4),
+        str.substr(20, 12)
+    ];
+
+    return parts.join('-');
 }

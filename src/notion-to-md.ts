@@ -172,12 +172,8 @@ export class NotionToMarkdown {
       );
     }
 
-    let blocks:ListBlockChildrenResponseResults = [];
-    if((this.notionClient as unknown as string)=== 'local' && this.config.blocks.length > 0){
-      blocks = this.config.blocks;
-    }else{
-     blocks = await getBlockChildren(this.notionClient, id, totalPage);
-    }
+    let blocks:ListBlockChildrenResponseResults = await getBlockChildren(this.notionClient, id, totalPage,this.config.blocks);
+    
     const parsedData = await this.blocksToMarkdown(blocks);
 
     return parsedData;
@@ -221,7 +217,8 @@ export class NotionToMarkdown {
         let child_blocks = await getBlockChildren(
           this.notionClient,
           block_id,
-          totalPage
+          totalPage,
+          this.config.blocks
         );
 
         // Push this block to mdBlocks.
@@ -402,7 +399,7 @@ export class NotionToMarkdown {
         const { id, has_children } = block;
         let tableArr: string[][] = [];
         if (has_children) {
-          const tableRows = await getBlockChildren(this.notionClient, id, 100);
+          const tableRows = await getBlockChildren(this.notionClient, id, 100,this.config.blocks);
           let rowsPromise = tableRows?.map(async (row) => {
             const { type } = row as any;
             const cells = (row as any)[type]["cells"];
@@ -514,7 +511,8 @@ export class NotionToMarkdown {
           const callout_children_object = await getBlockChildren(
             this.notionClient,
             id,
-            100
+            100,
+            this.config.blocks
           );
 
           // // parse children blocks to md object
