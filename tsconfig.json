@@ -6,7 +6,7 @@
     ],
     "module": "commonjs",
     "resolveJsonModule": true,
-    "declaration": true,
+    "declaration": false,
     "declarationMap": false,
     "sourceMap": false,
     "outDir": "./build",
@@ -22,7 +22,7 @@
   },
   "exclude": [
     "node_modules",
-    "*.spec.ts"
+    "./src/**/*.spec.ts"
   ],
   "include": [
     "./src/**/*.ts"
