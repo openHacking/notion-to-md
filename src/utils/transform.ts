@@ -59,7 +59,7 @@ export function convertBlocksResponseData(data:any, pageId:string) {
 
     const transBlocks = blocks.map((item) => {
         const blockData = item.value.value;
-        const blockType = blockTypeMap[blockData.type]
+        const blockType = blockTypeMap[blockData.type] || blockData.type;
 
         let baseBlockData = {
             type: blockType,
@@ -113,9 +113,9 @@ function createBlockData(blockData:any,blockType:string) {
         case "image":
             return imageBlock(blockData,blockType)
             break;
-        case "toggle":
-            return toggleBlock(blockData,blockType)
-            break;
+        // case "toggle":
+        //     return toggleBlock(blockData,blockType)
+        //     break;
 
         default:
             return defaultBlock(blockType)

@@ -2555,7 +2555,7 @@ const pageId = '51eb3724-1554-4cad-8f42-a2103a7feafa'
 const responseData = convertBlocksResponseData(originData, pageId);
 
 // passing notion client to the option
-const n2m = new NotionToMarkdown({ notionClient:'local', config:{
+const n2m = new NotionToMarkdown({ notionClient, config:{
   blocks:responseData
 } });
 
