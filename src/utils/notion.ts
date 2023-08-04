@@ -21,23 +21,31 @@ export const getBlockChildren = async (
     
     result = convertBlocksResponseData(blocks, block_id) as ListBlockChildrenResponseResults;
 
-    // console.info('\n\n\n\n\n\nchild===local=====result========================\n\n\n',JSON.stringify(result))
-
   }else{
-    do {
-      const response = (await notionClient.blocks.children.list({
-        start_cursor: start_cursor,
-        block_id: block_id,
-      })) as ListBlockChildrenResponse;
-      result.push(...response.results);
+    try {
+      do {
+        const response = (await notionClient.blocks.children.list({
+          start_cursor: start_cursor,
+          block_id: block_id,
+        })) as ListBlockChildrenResponse;
+        result.push(...response.results);
+    
+        start_cursor = response?.next_cursor;
+        pageCount += 1;
+      } while (
+        start_cursor != null &&
+        (totalPage == null || pageCount < totalPage)
+      );
   
-      start_cursor = response?.next_cursor;
-      pageCount += 1;
-    } while (
-      start_cursor != null &&
-      (totalPage == null || pageCount < totalPage)
-    );
+      console.info('\n\n\n\n\n\nchild===remote=====result========================\n\n\n',JSON.stringify(result))
+    } catch (error) {
+      console.error(error)
+      return []
+    }
+   
   }
+
+
 
   modifyNumberedListObject(result);
   return result;

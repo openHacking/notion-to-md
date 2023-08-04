@@ -7,6 +7,7 @@ const blockTypeMap:any = {
     "header": "heading_1",
     "sub_header": "heading_2",
     "sub_sub_header": "heading_3",
+    "page": "child_page",
     // "quote": "quote",
     // "image": "image",
     // "toggle": "toggle",
@@ -35,7 +36,6 @@ const blockTypeMap:any = {
   | "template"
   | "child_page"
   | "child_database"
-  | "callout"
   | "breadcrumb"
   | "table_of_contents"
   | "link_to_page"
@@ -127,6 +127,15 @@ function createBlockData(blockData:any,blockType:string,parentData:any) {
             break;
         case "code":
             return codeBlock(blockData,blockType)
+            break;
+        case "child_page":
+            return childPageBlock(blockData,blockType)
+            break;
+        case "alias":
+            return aliasBlock(blockData,blockType)
+            break;
+        case "callout":
+            return calloutBlock(blockData,blockType)
             break;
 
         default:
@@ -276,22 +285,6 @@ function tableBlock(blockData:any,blockType:string) {
 
 /**
  * 
- * "table_block_column_order": [
-                    "cu^j",
-                    "kUBI"
-                ]
- * "properties": {
-                "cu^j": [
-                    [
-                        "Header1"
-                    ]
-                ],
-                "kUBI": [
-                    [
-                        "Header2"
-                    ]
-                ]
-            },
  * @param blockData 
  * @param blockType 
  * @returns 
@@ -329,21 +322,6 @@ function todoBlock(blockData:any,blockType:string) {
 }
 
 /**
- * "properties": {
-                "title": [
-                    [
-                        "This is a code block"
-                    ]
-                ],
-                "language": [
-                    [
-                        "Shell"
-                    ]
-                ]
-            },
-            "format": {
-                "code_wrap": true
-            },
  * @param blockData 
  * @param blockType 
  * @returns 
@@ -359,6 +337,96 @@ function codeBlock(blockData:any,blockType:string) {
             rich_text,
             caption: [],
             language
+        },
+    }
+}
+
+function childPageBlock(blockData:any,blockType:string) {
+    const id = blockData.id;
+    const properties = blockData.properties;
+    const title = properties && properties.title[0][0];
+    const link = titleToUrl(title,id)
+    return {
+        type:'paragraph',
+        paragraph: {
+            rich_text: [
+                {
+                    type: "text",
+                    text: {
+                        content: title,
+                        link: {
+                            url: link
+                        },
+                    },
+                    annotations: {
+                        bold: false,
+                        italic: false,
+                        strikethrough: false,
+                        underline: false,
+                        code: false,
+                        color: "default",
+                    },
+                    plain_text: title,
+                    href: link,
+                },
+            ],
+            color: "default",
+        },
+    }
+}
+
+function aliasBlock(blockData:any,blockType:string) {
+    const format = blockData.format;
+    const aliasId = format && format.alias_pointer && format.alias_pointer.id || '';
+    const title = 'alias'
+    const link = idToAliasLink(aliasId)
+    return {
+        type:'paragraph',
+        paragraph: {
+            rich_text: [
+                {
+                    type: "text",
+                    text: {
+                        content: title,
+                        link: {
+                            url: link
+                        },
+                    },
+                    annotations: {
+                        bold: false,
+                        italic: false,
+                        strikethrough: false,
+                        underline: false,
+                        code: false,
+                        color: "default",
+                    },
+                    plain_text: title,
+                    href: link,
+                },
+            ],
+            color: "default",
+        },
+    }
+}
+
+function calloutBlock(blockData:any,blockType:string) {
+    const format = blockData.format;
+    const pageIcon = format && format.page_icon;
+    const color = format && format.block_color;
+    const type = pageIcon.indexOf('/') === -1 ? 'emoji' : 'external'
+    
+    const properties = blockData.properties;
+    const title = properties && properties.title;
+    const rich_text = convertTextList(title);
+
+    return {
+        [blockType]: {
+            rich_text,
+            icon: {
+                type,
+                [type]: pageIcon
+            },
+            color
         },
     }
 }
@@ -401,3 +469,41 @@ export function convertToUUID(str:string) {
 
     return parts.join('-');
 }
+
+export function covertToID(str:string) {
+    return str.replace(/-/g,'')
+}
+
+/**
+ * child page title to url
+ * @param title 
+ * @returns 
+ */
+export function titleToUrlPath(title:string) {
+    // 将非字母数字字符和下划线替换为空格
+    const sanitizedTitle = title.replace(/[^a-zA-Z0-9_]+/g, ' ');
+    
+    // 将多个连续空格替换为单个空格
+    const trimmedTitle = sanitizedTitle.replace(/\s+/g, ' ').trim();
+    
+    // 将空格替换为连字符
+    const url = trimmedTitle.replace(/\s+/g, '-');
+    
+    return url;
+  }
+
+  export function titleToUrl(title:string,id:string) {
+    let origin = '';
+    if(globalThis.location && globalThis.location.origin){
+        origin = location.origin;
+    }
+
+    const url = origin +'/'+ titleToUrlPath(title) + '-' + covertToID(id)
+    
+    return url
+  }
+
+  export function idToAliasLink(id:string) {
+    return 'https://www.notion.so/' + covertToID(id);
+  }
+
