@@ -321,38 +321,40 @@ export class NotionToMarkdown {
 
       case "video":
       case "file":
-      // case "pdf":
-      //   {
-      //     let blockContent;
-      //     let title: string = type;
+      case "pdf":
+      case "audio":
+        {
+          let blockContent;
+          let title: string = type;
 
-      //     if (type === "video") blockContent = block.video;
-      //     if (type === "file") blockContent = block.file;
-      //     if (type === "pdf") blockContent = block.pdf;
+          if (type === "video") blockContent = block.video;
+          if (type === "file") blockContent = block.file;
+          if (type === "pdf") blockContent = block.pdf;
+          if (type === "audio") blockContent = block.audio;
 
-      //     const caption = blockContent?.caption
-      //       .map((item: any) => item.plain_text)
-      //       .join("");
+          const caption = blockContent?.caption
+            .map((item: any) => item.plain_text)
+            .join("");
 
-      //     if (blockContent) {
-      //       const file_type = blockContent.type;
-      //       let link = "";
-      //       if (file_type === "external") link = blockContent.external.url;
-      //       if (file_type === "file") link = blockContent.file.url;
+          if (blockContent) {
+            const file_type = blockContent.type;
+            let link = "";
+            if (file_type === "external") link = blockContent.external.url;
+            if (file_type === "file") link = blockContent.file.url;
 
-      //       if (caption && caption.trim().length > 0) {
-      //         title = caption;
-      //       } else if (link) {
-      //         const matches = link.match(
-      //           /[^\/\\&\?]+\.\w{3,4}(?=([\?&].*$|$))/
-      //         );
-      //         title = matches ? matches[0] : type;
-      //       }
+            if (caption && caption.trim().length > 0) {
+              title = caption;
+            } else if (link) {
+              const matches = link.match(
+                /[^\/\\&\?]+\.\w{3,4}(?=([\?&].*$|$))/
+              );
+              title = matches ? matches[0] : type;
+            }
 
-      //       return md.link(title, link);
-      //     }
-      //   }
-      //   break;
+            return md.link(title, link);
+          }
+        }
+        break;
 
       case "bookmark":
       case "embed":

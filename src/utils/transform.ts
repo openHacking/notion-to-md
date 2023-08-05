@@ -19,10 +19,7 @@ const blockTypeMap:any = {
 
 /**
  * BlockType
-  | "video"
-  | "file"
   | "pdf"
-  | "bookmark"
   | "embed"
   | "equation"
   | "divider"
@@ -39,7 +36,6 @@ const blockTypeMap:any = {
   | "breadcrumb"
   | "table_of_contents"
   | "link_to_page"
-  | "audio"
   | "unsupported"
  *
  * @param data
@@ -136,6 +132,14 @@ function createBlockData(blockData:any,blockType:string,parentData:any) {
             break;
         case "callout":
             return calloutBlock(blockData,blockType)
+            break;
+        case "bookmark":
+            return bookmarkBlock(blockData,blockType)
+            break;
+        case "video":
+        case "audio":
+        case "file":
+            return videoBlock(blockData,blockType)
             break;
 
         default:
@@ -344,7 +348,7 @@ function codeBlock(blockData:any,blockType:string) {
 function childPageBlock(blockData:any,blockType:string) {
     const id = blockData.id;
     const properties = blockData.properties;
-    const title = properties && properties.title[0][0];
+    const title = properties && properties.title && properties.title[0][0];
     const link = titleToUrl(title,id)
     return {
         type:'paragraph',
@@ -378,8 +382,8 @@ function childPageBlock(blockData:any,blockType:string) {
 function aliasBlock(blockData:any,blockType:string) {
     const format = blockData.format;
     const aliasId = format && format.alias_pointer && format.alias_pointer.id || '';
-    const title = 'alias'
     const link = idToAliasLink(aliasId)
+    const title = link
     return {
         type:'paragraph',
         paragraph: {
@@ -427,6 +431,85 @@ function calloutBlock(blockData:any,blockType:string) {
                 [type]: pageIcon
             },
             color
+        },
+    }
+}
+
+function bookmarkBlock(blockData:any,blockType:string) {
+    
+    const properties = blockData.properties;
+    const title = properties && properties.title && properties.title[0][0];
+    const link = properties && properties.link && properties.link[0][0];
+
+    return {
+        type:'paragraph',
+        paragraph: {
+            rich_text: [
+                {
+                    type: "text",
+                    text: {
+                        content: title,
+                        link: {
+                            url: link
+                        },
+                    },
+                    annotations: {
+                        bold: false,
+                        italic: false,
+                        strikethrough: false,
+                        underline: false,
+                        code: false,
+                        color: "default",
+                    },
+                    plain_text: title,
+                    href: link,
+                },
+            ],
+            color: "default",
+        },
+    }
+}
+
+/**
+ * 
+ * "properties": {
+                    "source": [
+                        [
+                            "https://www.youtube.com/watch?v=Ndwv0t0TIj0"
+                        ]
+                    ],
+                    "caption": [
+                        [
+                            "chatgpt to screenshot video"
+                        ]
+                    ],
+                    "title": [
+                        [
+                            "1.mp3"
+                        ]
+                    ],
+                },
+ * 
+ * @param blockData 
+ * @param blockType 
+ * @returns 
+ */
+function videoBlock(blockData:any,blockType:string) {
+    
+    const properties = blockData.properties;
+    const link = properties && properties.source && properties.source[0][0];
+    const title = properties && properties.caption && properties.caption[0][0] || properties && properties.title && properties.title[0][0] || link;
+    const type = 'external'
+
+    return {
+        [blockType]: {
+            caption: [{
+                plain_text:title
+            }],
+            type,
+            [type]: {
+                url: link
+            }
         },
     }
 }
