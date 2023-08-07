@@ -7026,7 +7026,7 @@ const targetData = [
         "archived": false,
         "type": "unsupported",
         "unsupported": {}
-    }
+    },
 ]
 
 const c1 = [
@@ -7794,49 +7794,7 @@ const c6 = [
 ]
 
 const c7 = [
-    {
-        "object": "block",
-        "id": "e9920591-d87d-430b-ad04-c0f86531cf7f",
-        "parent": {
-            "type": "block_id",
-            "block_id": "599f49c6-a9a8-4018-8dea-82a2ff96bd79"
-        },
-        "created_time": "2023-08-04T06:32:00.000Z",
-        "last_edited_time": "2023-08-04T06:32:00.000Z",
-        "created_by": {
-            "object": "user",
-            "id": "7ede56ff-3f6c-49d6-b011-fcba930cc347"
-        },
-        "last_edited_by": {
-            "object": "user",
-            "id": "7ede56ff-3f6c-49d6-b011-fcba930cc347"
-        },
-        "has_children": false,
-        "archived": false,
-        "type": "paragraph",
-        "paragraph": {
-            "rich_text": [
-                {
-                    "type": "text",
-                    "text": {
-                        "content": "i am synced content",
-                        "link": null
-                    },
-                    "annotations": {
-                        "bold": false,
-                        "italic": false,
-                        "strikethrough": false,
-                        "underline": false,
-                        "code": false,
-                        "color": "default"
-                    },
-                    "plain_text": "i am synced content",
-                    "href": null
-                }
-            ],
-            "color": "default"
-        }
-    }
+    
 ]
 
 const c8 = [

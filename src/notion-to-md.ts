@@ -173,7 +173,7 @@ export class NotionToMarkdown {
     }
 
     let blocks:ListBlockChildrenResponseResults = await getBlockChildren(this.notionClient, id, totalPage,this.config.blocks);
-    
+
     const parsedData = await this.blocksToMarkdown(blocks);
 
     return parsedData;
@@ -247,6 +247,7 @@ export class NotionToMarkdown {
       }
 
       let tmp = await this.blockToMarkdown(block);
+
       mdBlocks.push({
         // @ts-ignore
         type: block.type,

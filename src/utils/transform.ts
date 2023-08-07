@@ -21,20 +21,14 @@ const blockTypeMap:any = {
  * BlockType
   | "pdf"
   | "embed"
-  | "equation"
   | "divider"
   | "synced_block"
   | "column_list"
   | "column"
   | "link_preview"
   | "link_to_page"
-
-  | ""
   | "template"
-  | "child_page"
-  | "child_database"
   | "breadcrumb"
-  | "table_of_contents"
   | "link_to_page"
   | "unsupported"
  *
@@ -42,19 +36,18 @@ const blockTypeMap:any = {
  * @param id
  * @returns
  */
+
+const excludeBlocks = ['transclusion_container']
+
 export function convertBlocksResponseData(data:any, id:string) {
     const parentData = data[id].value.value ? data[id].value.value : data[id].value;
     const blockIdList = parentData.content;
     const parentType = parentData.type === 'page' ? 'page_id' : 'block_id'
     const blocks: any[] = []
     blockIdList.forEach((id:string) => {
-        const blockItem = data[id]
-        if(blockItem){
-            blocks.push(blockItem)
-        }
-    })
+        const item = data[id]
+        if(!item) return;
 
-    const transBlocks = blocks.map((item) => {
         const blockData = item.value.value ? item.value.value : item.value;
         const has_children = blockData.content ? true : false;
         const blockType = blockTypeMap[blockData.type] || blockData.type;
@@ -84,10 +77,11 @@ export function convertBlocksResponseData(data:any, id:string) {
 
         const newBlockData = createBlockData(blockData,blockType,parentData);
 
-        return Object.assign(baseBlockData,newBlockData);
-    });
+        const blockItem = Object.assign(baseBlockData,newBlockData);
 
-    return transBlocks;
+        blocks.push(blockItem)
+    })
+    return blocks;
 }
 
 
@@ -140,6 +134,15 @@ function createBlockData(blockData:any,blockType:string,parentData:any) {
         case "audio":
         case "file":
             return videoBlock(blockData,blockType)
+            break;
+        case "collection_view_page":
+            return collectionViewPageBlock(blockData,blockType)
+            break;
+        case "equation":
+            return equationBlock(blockData,blockType)
+            break;
+        case "transclusion_container":
+            return transclusionContainerBlock(blockData,blockType)
             break;
 
         default:
@@ -472,24 +475,6 @@ function bookmarkBlock(blockData:any,blockType:string) {
 
 /**
  * 
- * "properties": {
-                    "source": [
-                        [
-                            "https://www.youtube.com/watch?v=Ndwv0t0TIj0"
-                        ]
-                    ],
-                    "caption": [
-                        [
-                            "chatgpt to screenshot video"
-                        ]
-                    ],
-                    "title": [
-                        [
-                            "1.mp3"
-                        ]
-                    ],
-                },
- * 
  * @param blockData 
  * @param blockType 
  * @returns 
@@ -514,14 +499,57 @@ function videoBlock(blockData:any,blockType:string) {
     }
 }
 
-function defaultBlock(blockType:string) {
+function collectionViewPageBlock(blockData:any,blockType:string) {
+    const id = blockData.id || '';
+    const link = idToAliasLink(id)
+    const title = 'collection_view_page'
+    return {
+        type:'paragraph',
+        paragraph: {
+            rich_text: [
+                {
+                    type: "text",
+                    text: {
+                        content: title,
+                        link: {
+                            url: link
+                        },
+                    },
+                    annotations: {
+                        bold: false,
+                        italic: false,
+                        strikethrough: false,
+                        underline: false,
+                        code: false,
+                        color: "default",
+                    },
+                    plain_text: title,
+                    href: link,
+                },
+            ],
+            color: "default",
+        },
+    }
+}
+
+function equationBlock(blockData:any,blockType:string) {
+    const properties = blockData.properties;
+    const title = properties.title && properties.title[0][0] || '';
+    return {
+        [blockType]:{
+            expression:title
+        }
+    }
+}
+function transclusionContainerBlock(blockData:any,blockType:string) {
+    const title = '';
     return {
         [blockType]: {
             rich_text: [
                 {
                     type: "text",
                     text: {
-                        content: 'UNSUPPORTED',
+                        content: title,
                         link: null,
                     },
                     annotations: {
@@ -532,7 +560,35 @@ function defaultBlock(blockType:string) {
                         code: false,
                         color: "default",
                     },
-                    plain_text: 'UNSUPPORTED',
+                    plain_text: title,
+                    href: null,
+                },
+            ],
+            color: "default",
+        },
+    }
+}
+
+function defaultBlock(blockType:string) {
+    const title = `[${blockType} unsupported]`
+    return {
+        [blockType]: {
+            rich_text: [
+                {
+                    type: "text",
+                    text: {
+                        content: title,
+                        link: null,
+                    },
+                    annotations: {
+                        bold: false,
+                        italic: false,
+                        strikethrough: false,
+                        underline: false,
+                        code: false,
+                        color: "default",
+                    },
+                    plain_text: title,
                     href: null,
                 },
             ],
