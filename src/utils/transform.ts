@@ -142,7 +142,9 @@ function createBlockData(blockData:any,blockType:string,parentData:any) {
             return equationBlock(blockData,blockType)
             break;
         case "transclusion_container":
-            return transclusionContainerBlock(blockData,blockType)
+        case "column":
+        case "column_list":
+            return blankBlock(blockData,blockType)
             break;
 
         default:
@@ -541,7 +543,7 @@ function equationBlock(blockData:any,blockType:string) {
         }
     }
 }
-function transclusionContainerBlock(blockData:any,blockType:string) {
+function blankBlock(blockData:any,blockType:string) {
     const title = '';
     return {
         [blockType]: {
