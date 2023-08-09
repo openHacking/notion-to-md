@@ -1,5 +1,3 @@
-import { ListBlockChildrenResponseResults } from "../types";
-
 const blockTypeMap:any = {
     "text": "paragraph",
     "bulleted_list": "bulleted_list_item",
@@ -7,25 +5,16 @@ const blockTypeMap:any = {
     "header": "heading_1",
     "sub_header": "heading_2",
     "sub_sub_header": "heading_3",
-    "page": "child_page",
-    // "quote": "quote",
-    // "image": "image",
-    // "toggle": "toggle",
-    // "code": "code",
-    // "divider": "divider",
-    // "table": "table",
-    // "to_do": "to_do",
+    "page": "child_page"
 }
 
 /**
  * BlockType
   | "pdf"
-  | "embed"
   | "divider"
   | "synced_block"
   | "column_list"
   | "column"
-  | "link_preview"
   | "link_to_page"
   | "template"
   | "breadcrumb"
@@ -135,6 +124,14 @@ function createBlockData(blockData:any,blockType:string,parentData:any) {
         case "file":
             return videoBlock(blockData,blockType)
             break;
+        case "embed":
+        case "tweet":
+        case "gist":
+            return embedBlock(blockData,blockType)
+            break;
+        case "external_object_instance":
+            return externalObjectInstanceBlock(blockData,blockType)
+            break;
         case "collection_view_page":
             return collectionViewPageBlock(blockData,blockType)
             break;
@@ -144,6 +141,7 @@ function createBlockData(blockData:any,blockType:string,parentData:any) {
         case "transclusion_container":
         case "column":
         case "column_list":
+        case "ai_block":
             return blankBlock(blockData,blockType)
             break;
 
@@ -156,11 +154,11 @@ function createBlockData(blockData:any,blockType:string,parentData:any) {
 
 
 
-function convertTextList(textList:any[]) {
+function convertTextList(blockData:any,textList:any[]) {
 
     if(!textList) return []
 
-    function processAnnotations(annotations:any) {
+    function processAnnotations(annotations:any,text:string) {
         const result = {
             bold: false,
             italic: false,
@@ -170,7 +168,13 @@ function convertTextList(textList:any[]) {
             color: "default"
         };
 
-        let link = null
+        let link = null;
+        let type = 'text';
+        let content = text;
+        let info:any = {
+            content,
+            link
+        }
         if(annotations) {
             for (const annotation of annotations) {
 
@@ -194,28 +198,50 @@ function convertTextList(textList:any[]) {
                 }
                 if (annotation.includes("a")) {
                     link = annotation[annotation.indexOf("a") + 1];
+                    info.link = link;
+                }
+                // mention a person or reminder a date,use id to replaced
+                if (annotation.includes("u") || annotation.includes("d")) {
+                    content = `[$$replace-start-${blockData.id}-end-replace$$]`;
+                    info.content = content;
+                }
+                // mention a page
+                if (annotation.includes("p")) {
+                    const pageId = annotation[annotation.indexOf("p") + 1];
+                    content = idToAliasLink(pageId);
+                    link = content;
+                    info.link = link;
+                    info.content = content;
+                }
+                // 行内公式
+                if (annotation.includes("e")) {
+                    content = annotation[annotation.indexOf("e") + 1];
+                    type = 'equation';
+                    info = {
+                        expression:content
+                    }
                 }
             }
         }
 
         return {
             annotationObj:result,
-            link
+            link,
+            content,
+            type,
+            info
         };
     }
 
     const richTextList = [];
     for (const [text, annotations] of textList) {
-        const {annotationObj,link} = processAnnotations(annotations);
+        const {annotationObj,link,content,type,info} = processAnnotations(annotations,text);
         const textObj = {
-            type: "text",
-            text: {
-                content: text,
-                link
-            },
+            type,
+            [type]: info,
             annotations: annotationObj,
-            plain_text: text,
-            href:link
+            plain_text:content,
+            href: link
         };
         richTextList.push(textObj);
     }
@@ -226,7 +252,7 @@ function convertTextList(textList:any[]) {
 
 function headingBlock(blockData:any,blockType:string) {
     const title = blockData.properties.title
-    const rich_text = convertTextList(title)
+    const rich_text = convertTextList(blockData,title)
     return {
         [blockType]: {
             rich_text,
@@ -243,7 +269,7 @@ function headingBlock(blockData:any,blockType:string) {
  */
 function paragraphBlock(blockData:any,blockType:string) {
     const title = blockData.properties && blockData.properties.title
-    const rich_text = convertTextList(title)
+    const rich_text = convertTextList(blockData,title)
     return {
         [blockType]: {
             rich_text,
@@ -258,7 +284,7 @@ function paragraphBlock(blockData:any,blockType:string) {
  */
 function numberedListItemBlock(blockData:any,blockType:string) {
     const title = blockData.properties.title
-    const rich_text = convertTextList(title)
+    const rich_text = convertTextList(blockData,title)
     return {
         [blockType]: {
             rich_text,
@@ -305,7 +331,7 @@ function tableRowBlock(blockData:any,blockType:string,parentData:any) {
 
     const cells:any[] = table_block_column_order.map((columnOrder:string)=>{
         const columnTextList = properties[columnOrder];
-        const rich_text = convertTextList(columnTextList);
+        const rich_text = convertTextList(blockData,columnTextList);
         return rich_text;
     })
 
@@ -320,7 +346,7 @@ function todoBlock(blockData:any,blockType:string) {
     const properties = blockData.properties;
     const title = properties &&properties.title;
     const checked = properties && properties.checked && properties.checked[0][0] === 'Yes' ? true : false;
-    const rich_text = convertTextList(title);
+    const rich_text = convertTextList(blockData,title);
     return {
         [blockType]: {
             rich_text,
@@ -340,7 +366,7 @@ function codeBlock(blockData:any,blockType:string) {
     const format = blockData.format;
     const title = properties && properties.title;
     const language = properties && properties.language && properties.language[0][0];
-    const rich_text = convertTextList(title);
+    const rich_text = convertTextList(blockData,title);
     return {
         [blockType]: {
             rich_text,
@@ -426,7 +452,7 @@ function calloutBlock(blockData:any,blockType:string) {
     
     const properties = blockData.properties;
     const title = properties && properties.title;
-    const rich_text = convertTextList(title);
+    const rich_text = convertTextList(blockData,title);
 
     return {
         [blockType]: {
@@ -497,6 +523,75 @@ function videoBlock(blockData:any,blockType:string) {
             [type]: {
                 url: link
             }
+        },
+    }
+}
+function embedBlock(blockData:any,blockType:string) {
+    
+    const properties = blockData.properties;
+    const link = properties && properties.source && properties.source[0][0];
+    const title = properties && properties.caption && properties.caption[0][0] || properties && properties.title && properties.title[0][0] || link;
+
+    return {
+        type:'paragraph',
+        paragraph: {
+            rich_text: [
+                {
+                    type: "text",
+                    text: {
+                        content: title,
+                        link: {
+                            url: link
+                        },
+                    },
+                    annotations: {
+                        bold: false,
+                        italic: false,
+                        strikethrough: false,
+                        underline: false,
+                        code: false,
+                        color: "default",
+                    },
+                    plain_text: title,
+                    href: link,
+                },
+            ],
+            color: "default",
+        },
+    }
+}
+
+function externalObjectInstanceBlock(blockData:any,blockType:string) {
+    
+    const format = blockData.format;
+    const link = format && format.original_url;
+    const title = link;
+
+    return {
+        type:'paragraph',
+        paragraph: {
+            rich_text: [
+                {
+                    type: "text",
+                    text: {
+                        content: title,
+                        link: {
+                            url: link
+                        },
+                    },
+                    annotations: {
+                        bold: false,
+                        italic: false,
+                        strikethrough: false,
+                        underline: false,
+                        code: false,
+                        color: "default",
+                    },
+                    plain_text: title,
+                    href: link,
+                },
+            ],
+            color: "default",
         },
     }
 }

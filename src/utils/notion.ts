@@ -36,8 +36,7 @@ export const getBlockChildren = async (
         start_cursor != null &&
         (totalPage == null || pageCount < totalPage)
       );
-  
-      console.info('\n\n\n\n\n\nchild===remote=====result========================\n\n\n',JSON.stringify(result))
+
     } catch (error) {
       console.error(error)
       return []
